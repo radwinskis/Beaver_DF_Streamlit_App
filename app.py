@@ -229,7 +229,7 @@ if '1.' in mode:
 # MODE 2: METRICS
 # ---------------------------------------------
 elif '2.' in mode:
-    m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
+    # m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
     m.add_ee_layer(apply_mask(after), {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 0.35}, 'After True Color', True)
     
     metric_type = st.sidebar.selectbox('Select metric classification type:', [
@@ -275,6 +275,7 @@ elif '2.' in mode:
         
         st.sidebar.markdown("### Change Boundary")
         st.sidebar.markdown("⬛ No Change / Background<br>🟥 Change Detected", unsafe_allow_html=True)
+    m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
 
     folium.LayerControl().add_to(m)
 
@@ -283,7 +284,7 @@ elif '2.' in mode:
 # MODE 3: BOUNDARIES
 # ---------------------------------------------
 elif '3.' in mode:
-    m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
+    # m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
     
     boundary_options = {
         'Sum of Change Detected Pixels (5 means total agreement)': {'band': 'summed_change', 'min': 0, 'max': 3, 'palette': agreement_palette},
@@ -306,6 +307,8 @@ elif '3.' in mode:
         color_map = {'red': '🟥', 'orange': '🟧', 'yellow': '🟨'}
         st.sidebar.markdown(f"### Legend")
         st.sidebar.markdown(f"{color_map[params['palette'][0]]} Change Detected", unsafe_allow_html=True)
+
+    m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
 
     folium.LayerControl().add_to(m)
     # st_folium(m, use_container_width=True, height=800, returned_objects=[])
