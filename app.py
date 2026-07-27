@@ -180,7 +180,7 @@ if '1.' in mode:
     plugins.SideBySideLayers(left_layer, right_layer).add_to(m)
     
     # Add roads globally to the map on top of the swipe layer
-    # m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
+    m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
     # st_folium(m, use_container_width=True, height=800, returned_objects=[])
 
 # ---------------------------------------------
@@ -318,4 +318,12 @@ elif '3.' in mode:
 # =================================================================
 # Display the map using streamlit-folium instead of geemap
 # st_folium(m, use_container_width=True, height=800)
-st_folium(m, use_container_width=True, height=800, returned_objects=[])
+# st_folium(m, use_container_width=True, height=800, returned_objects=[])
+map_key = f"{mode}_{choice}_{mask_ag}"
+
+# 2. If we are in Mode 2, also include the sub-metric type in the key
+if '2.' in mode:
+    map_key += f"_{metric_type}"
+
+# 3. Pass the dynamic key to force a redraw ONLY when these options change
+st_folium(m, use_container_width=True, height=800, returned_objects=[], key=map_key)
