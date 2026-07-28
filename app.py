@@ -216,6 +216,7 @@ if '1.' in mode:
     
     choice = st.sidebar.selectbox('Select bands to compare (Before left, After right):', list(swipe_options.keys()))
     params = swipe_options[choice]
+    st.sidebar.markdown("LEFT IMAGE: Jul 10 | RIGHT IMAGE: Jul 20")
     
     if choice == 'True Color':
         left_img = apply_mask(before)
