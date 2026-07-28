@@ -74,12 +74,7 @@ def get_assets():
         .filter(ee.Filter.eq('LU_Group', 'Active IR')) \
         .filter(ee.Filter.eq('IRR_Method', 'Sprinkler'))
     
-    map_bounds = ee.Geometry.Polygon(
-        [[[-112.834396, 38.173433], 
-          [-112.834396, 38.375577], 
-          [-112.449188, 38.375577], 
-          [-112.449188, 38.173433], 
-          [-112.834396, 38.173433]]])
+    map_bounds = ee.Geometry.Polygon([[[-113.016357, 38.08323], [-113.016357, 38.460682], [-112.104492, 38.460682], [-112.104492, 38.08323], [-113.016357, 38.08323]]])
           
     # Style the roads for Folium (converting FeatureCollection to a painted image)
     roads_fc = ee.FeatureCollection("TIGER/2016/Roads").filterBounds(map_bounds)
