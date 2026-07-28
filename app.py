@@ -85,11 +85,11 @@ def get_assets():
     roads_fc = ee.FeatureCollection("TIGER/2016/Roads").filterBounds(map_bounds)
     roads_styled = roads_fc.style(color='white', width=1)
     
-    before = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/Before_Debris_Flow")
-    after = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/After_Debris_Flow")
-    diffClass = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/Index_Difference_Classifications")
-    diffClassMasked = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/difference_images_merged")
-    summaryChange = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/Summary_of_Changes_Image_Merged")
+    before = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/Before_Debris_Flow_Expanded_Area")
+    after = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/After_Debris_Flow_Expanded_Area")
+    diffClass = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/Index_Difference_Classifications_Expanded")
+    diffClassMasked = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/Delta_Difference_Images_Expanded_Area_as_Multiband")
+    summaryChange = ee.Image("projects/ut-gee-ugs-bsf-dev/assets/Beaver_Debris_Flow_Jul_2026/Summary_of_Changes_Image_Merged_Expanded")
     
     # Binary mask: 0 inside ag fields, 1 everywhere else
     not_ag_mask = ee.Image.constant(1).paint(ag, 0)
@@ -102,7 +102,81 @@ not_ag_mask, roads_styled, before, after, diffClass, diffClassMasked, summaryCha
 rdbu = ['red', 'white', 'blue']
 black_red = ['black', 'red']
 inferno = ['#000004', '#20114B', '#57157E', '#8F0DA4', '#C93681', '#F7705C', '#FDC926', '#FCFFA4']
-agreement_palette = ['white', 'yellow', 'orange', 'red']
+# agreement_palette = ['white', 'yellow', 'orange', 'red']
+agreement_palette = ['white', 'blue', 'cyan', 'yellow', 'orange', 'red']
+
+
+def build_colorbar_html(palette, title, left_label=None, right_label=None, ticks=None):
+    """Build a simple horizontal legend that works for Streamlit and Folium."""
+    if isinstance(palette, str):
+        palette = [palette]
+
+    if len(palette) == 1:
+        bar_style = f"background: {palette[0]};"
+    else:
+        gradient = "linear-gradient(to right, " + ", ".join(palette) + ")"
+        bar_style = f"background: {gradient};"
+
+    left_label = left_label if left_label is not None else "Low"
+    right_label = right_label if right_label is not None else "High"
+
+    if ticks:
+        tick_markup = "".join(f"<span>{tick}</span>" for tick in ticks)
+    else:
+        tick_markup = f"<span>{left_label}</span><span>{right_label}</span>"
+
+    return f"""
+    <div style="background: rgba(0,0,0,0.96); padding: 8px 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); margin-top: 10px; max-width: 280px; font-family: Arial, sans-serif;">
+      <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;">{title}</div>
+      <div style="height: 10px; border-radius: 6px; {bar_style}"></div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #555; margin-top: 4px;">
+        {tick_markup}
+      </div>
+    </div>
+    """
+
+
+def build_categorical_legend_html(title, items):
+    """Create a stepped legend for categorical rasters."""
+    rows = "".join(
+        f"<div style='display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #444;'><span style='display:inline-block; width: 16px; height: 10px; border-radius: 3px; background: {color};'></span><span>{label}</span></div>"
+        for label, color in items
+    )
+
+    return f"""
+    <div style="background: rgba(0,0,0,0.96); padding: 8px 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); margin-top: 10px; max-width: 280px; font-family: Arial, sans-serif;">
+      <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;">{title}</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">{rows}</div>
+    </div>
+    """
+
+
+def show_legend(container, palette, title, left_label=None, right_label=None, ticks=None):
+    """Render the same legend in Streamlit or on a Folium map."""
+    html = build_colorbar_html(palette, title, left_label, right_label, ticks)
+    if container == 'sidebar':
+        st.sidebar.markdown(html, unsafe_allow_html=True)
+    else:
+        wrapped_html = f"""
+        <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; pointer-events: none;">
+            {html}
+        </div>
+        """
+        container.get_root().html.add_child(folium.Element(wrapped_html))
+
+
+def show_categorical_legend(container, title, items):
+    """Render a categorical legend in Streamlit or on a Folium map."""
+    html = build_categorical_legend_html(title, items)
+    if container == 'sidebar':
+        st.sidebar.markdown(html, unsafe_allow_html=True)
+    else:
+        wrapped_html = f"""
+        <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; pointer-events: none;">
+            {html}
+        </div>
+        """
+        container.get_root().html.add_child(folium.Element(wrapped_html))
 
 # =================================================================
 # 3. Sidebar UI & Logic
@@ -123,9 +197,9 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("Viewing Mode")
 
 mode = st.sidebar.radio("Select a viewing mode:", [
-    '1. Compare Before & After (Swipe)', 
-    '2. View Change Metrics (Single Map)', 
-    '3. View Change Boundaries (Single Map)'
+    '1. Compare Before & After (Swipe Map)', 
+    '2. View Change Metrics (Delta Images of t2 - t1)', 
+    '3. View Change Boundaries (Polygons)'
 ])
 
 # Initialize Map
@@ -178,6 +252,10 @@ if '1.' in mode:
     
     # Add Folium swipe plugin
     plugins.SideBySideLayers(left_layer, right_layer).add_to(m)
+
+    if choice != 'True Color':
+        tick_labels = [f"{params['min']:.2f}", "0.00", f"{params['max']:.2f}"]
+        show_legend(m, params['palette'], f'{choice} Color Scale', str(params['min']), str(params['max']), tick_labels)
     
     # Add roads globally to the map on top of the swipe layer
     m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
@@ -260,9 +338,11 @@ elif '2.' in mode:
             
         m.add_ee_layer(img.select(band_name), vis, f'{choice} Difference', True)
         
-        st.sidebar.markdown("### Difference (RdBu Scale)")
-        st.sidebar.markdown("<div style='background: linear-gradient(to right, red, white, blue); height: 15px; border-radius: 5px;'></div>", unsafe_allow_html=True)
-        st.sidebar.markdown("<div style='display: flex; justify-content: space-between;'><span>Decrease (Red)</span><span>Increase (Blue)</span></div>", unsafe_allow_html=True)
+        low_label = f"{vis['min']:.2f}"
+        high_label = f"{vis['max']:.2f}"
+        tick_labels = [low_label, '0.00', high_label]
+        show_legend('sidebar', rdbu, 'Difference (RdBu Scale)', low_label, high_label, tick_labels)
+        show_legend(m, rdbu, 'Difference (RdBu Scale)', low_label, high_label, tick_labels)
         
     else:
         img = apply_mask(diffClass)
@@ -273,8 +353,8 @@ elif '2.' in mode:
             
         m.add_ee_layer(img.select(band_name).selfMask(), {'min': 0, 'max': 1, 'palette': black_red}, f'{choice} Boundary', True)
         
-        st.sidebar.markdown("### Change Boundary")
-        st.sidebar.markdown("⬛ No Change / Background<br>🟥 Change Detected", unsafe_allow_html=True)
+        show_categorical_legend('sidebar', 'Change Boundary', [('No change', '#ffffff'), ('Change detected', '#ff0000')])
+        show_categorical_legend(m, 'Change Boundary', [('No change', '#ffffff'), ('Change detected', '#ff0000')])
     m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
 
     folium.LayerControl().add_to(m)
@@ -285,9 +365,10 @@ elif '2.' in mode:
 # ---------------------------------------------
 elif '3.' in mode:
     # m.add_ee_layer(roads_styled, {}, 'Roads', True, 0.6)
+    m.add_ee_layer(apply_mask(after), {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 0.35}, 'After True Color', True)
     
     boundary_options = {
-        'Sum of Change Detected Pixels (5 means total agreement)': {'band': 'summed_change', 'min': 0, 'max': 3, 'palette': agreement_palette},
+        'Surface Change Summary': {'band': 'summed_change', 'min': 0, 'max': 3, 'palette': agreement_palette},
         'Surface Change High Confidence': {'band': 'surface_change_high_confidence', 'min': 0, 'max': 4, 'palette': ['red']},
         'Surface Change Medium Confidence': {'band': 'surface_change_medium_confidence', 'min': 0, 'max': 3, 'palette': ['orange']},
         'Surface Change Low Confidence': {'band': 'surface_change_low_confidence', 'min': 0, 'max': 2, 'palette': ['yellow']}
@@ -296,13 +377,17 @@ elif '3.' in mode:
     choice = st.sidebar.selectbox('Select a boundary summary to visualize:', list(boundary_options.keys()))
     params = boundary_options[choice]
     
-    m.add_ee_layer(apply_mask(summaryChange.select(params['band'])), 
+    
+    m.add_ee_layer(apply_mask(summaryChange.select(params['band'])).selfMask(),
                {'min': params['min'], 'max': params['max'], 'palette': params['palette']}, 
                choice)
+
     
-    if choice == 'Sum of Change Detected Pixels (5 means total agreement)':
-        st.sidebar.markdown("### Algorithm Agreement Score")
-        st.sidebar.markdown("⬜ 0-1 (Low)<br>🟨 2<br>🟧 3<br>🟥 4+ (High)", unsafe_allow_html=True)
+    
+    if choice == 'Surface Change Summary':
+        st.sidebar.markdown(f"This product counts the number of spectral products that detected significant surface change between time 1 and time 2 for each pixel. Values of 0 indicate that no change was detected among any of the change proxies, while a value of 5 indicates that change was detected among all of the change proxies. Values of 5 provide utmost confidence that these pixels are locations of the most significant surface change.")
+        show_categorical_legend('sidebar', 'Algorithm Agreement Score', [('0', 'white'), ('1', 'blue'), ('2', 'cyan'), ('3', 'yellow'), ('4', 'orange'), ('5', 'red')])
+        show_categorical_legend(m, 'Algorithm Agreement Score', [('0', 'white'), ('1', 'blue'), ('2', 'cyan'), ('3', 'yellow'), ('4', 'orange'), ('5', 'red')])
     else:
         color_map = {'red': '🟥', 'orange': '🟧', 'yellow': '🟨'}
         st.sidebar.markdown(f"### Legend")
